@@ -1,6 +1,6 @@
 {
-  "name": "mycli",
-  "version": "0.1.0",
+  "name": "log-cleanup",
+  "version": "0.1.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -11,12 +11,13 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "mycli": "./cli.js"
-  },
-  "dependencies": {
-    "interactive-commander": "^0.6.0"
+    "log-cleanup": "./src/commander.js"
   },
   "devDependencies": {
     "prettier": "^3.8.1"
+  },
+  "dependencies": {
+    "commander": "^14.0.3",
+    "inquirer": "^13.3.2"
   }
 }

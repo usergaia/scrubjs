@@ -24,4 +24,3 @@ export async function removeLogs(filePath, content) {
 }
 
 logList = await scanDirectory("./src");
-console.log(logList);
