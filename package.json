@@ -1,5 +1,5 @@
 {
-  "name": "log-cleanup",
+  "name": "logrm",
   "version": "0.1.1",
   "description": "",
   "main": "index.js",
@@ -11,7 +11,7 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "log-cleanup": "./src/commander.js"
+    "logrm": "./src/commander.js"
   },
   "devDependencies": {
     "prettier": "^3.8.1"

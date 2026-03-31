@@ -6,12 +6,12 @@ import inquirer from "inquirer";
 const program = new Command();
 
 program
-  .command("scan-logs")
+  .command("scan <path>")
   .description("Scan and delete logs")
   .option("-y, --yes", "Confirm log removal")
-  .action(async (options) => {
+  .action(async (path, options) => {
     let { scanDirectory, removeLogs } = await import("./remove-logs.js");
-    let logList = await scanDirectory("./test"); //temp, will make this dynamic later
+    let logList = await scanDirectory(path); //temp, will make this dynamic later
 
     if (logList.length > 0) {
       console.log("Found logs:", logList);
