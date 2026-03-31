@@ -10,7 +10,7 @@ program
   .description("Scan and delete logs")
   .option("-y, --yes", "Confirm log removal")
   .action(async (path, options) => {
-    let { scanDirectory, removeLogs } = await import("./remove-logs.js");
+    let { scanDirectory, removeLogs } = await import("./logs.js");
     let logList = await scanDirectory(path); //temp, will make this dynamic later
 
     if (logList.length > 0) {
