@@ -10,7 +10,7 @@ export async function scanDirectory(dir) {
   for (const file of files) {
     const filePath = path.join(dir, file);
     let content = await readFile(filePath, "utf8");
-    const matches = content.match(/console\.log\(.*?\);?/g) || [];
+    const matches = content.match(/console\.log\(.*?\);?/g) || []; //broken
 
     logs.push([matches, filePath]);
   }
@@ -18,7 +18,7 @@ export async function scanDirectory(dir) {
 }
 
 export async function removeLogs(filePath, content) {
-  content = content.replace(/console\.log\(.*\);?/g, "");
+  content = content.replace(/console\.log\(.*\);?/g, ""); //broken
   console.log(`Cleaned logs from ${filePath}`);
   await writeFile(filePath, content, "utf8");
 }
