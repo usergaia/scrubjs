@@ -11,7 +11,7 @@ program
   .option("-y, --yes", "Confirm log removal")
   .action(async (options) => {
     let { scanDirectory, removeLogs } = await import("./remove-logs.js");
-    let logList = await scanDirectory("./src");
+    let logList = await scanDirectory("./test"); //temp, will make this dynamic later
 
     if (logList.length > 0) {
       console.log("Found logs:", logList);
