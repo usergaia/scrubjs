@@ -5,6 +5,7 @@ import {
   extractLogs,
   isTargetedConsoleLog,
   rescueLeadingComments,
+  commentOutLogs,
 } from "./helper/index.js";
 
 const { parse, print, visit } = recast;
@@ -40,9 +41,16 @@ export async function scanDirectory(dir) {
   return logs;
 }
 
-export async function modifyLogs(filePath, content, logsToRemove) {
+export async function modifyLogs(filePath, content, logsToModify, mode) {
+  if (mode === "comment") {
+    const result = commentOutLogs(content, logsToModify);
+    await writeFile(filePath, result, "utf8");
+    return;
+  }
+
+  // mode === "remove" (defaults to remove; might change in future if more modes are added)
   const ast = parse(content, parseOptions);
-  const callSet = new Set(logsToRemove.map((l) => `${l.start},${l.end}`));
+  const callSet = new Set(logsToModify.map((l) => `${l.start},${l.end}`));
 
   visit(ast, {
     visitExpressionStatement(nodePath) {
