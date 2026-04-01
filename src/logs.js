@@ -1,26 +1,60 @@
 import { readdir, readFile, writeFile } from "fs/promises";
 import path from "path";
+import recast from "recast";
+import {
+  extractLogs,
+  isTargetedConsoleLog,
+  rescueLeadingComments,
+} from "./helper/index.js";
 
-let logList = [];
+const { parse, print, visit } = recast;
+const acornParse = (await import("acorn")).parse;
+
+const parseOptions = {
+  parser: {
+    parse(src) {
+      const comments = [];
+      const ast = acornParse(src, {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        locations: true,
+        ranges: true,
+        onComment: comments,
+      });
+      ast.comments = comments;
+      return ast;
+    },
+  },
+};
 
 export async function scanDirectory(dir) {
   const files = await readdir(dir);
-  let logs = [];
-
+  const logs = [];
   for (const file of files) {
     const filePath = path.join(dir, file);
-    let content = await readFile(filePath, "utf8");
-    const matches = content.match(/console\.log\(.*?\);?/g) || []; //broken
-
-    logs.push([matches, filePath]);
+    const content = await readFile(filePath, "utf8");
+    const ast = parse(content, parseOptions);
+    const logDetails = extractLogs(ast, content);
+    logs.push([logDetails, filePath]);
   }
   return logs;
 }
 
-export async function removeLogs(filePath, content) {
-  content = content.replace(/console\.log\(.*\);?/g, ""); //broken
-  console.log(`Cleaned logs from ${filePath}`);
-  await writeFile(filePath, content, "utf8");
-}
+export async function modifyLogs(filePath, content, logsToRemove) {
+  const ast = parse(content, parseOptions);
+  const callSet = new Set(logsToRemove.map((l) => `${l.start},${l.end}`));
 
-logList = await scanDirectory("./src");
+  visit(ast, {
+    visitExpressionStatement(nodePath) {
+      if (isTargetedConsoleLog(nodePath.node, callSet)) {
+        rescueLeadingComments(nodePath);
+        nodePath.prune();
+        return false;
+      }
+      this.traverse(nodePath);
+    },
+  });
+
+  const { code } = print(ast, { reuseWhitespace: true });
+  await writeFile(filePath, code, "utf8");
+}

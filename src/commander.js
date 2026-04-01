@@ -10,12 +10,18 @@ program
   .description("Scan and delete logs")
   .option("-y, --yes", "Confirm log removal")
   .action(async (path, options) => {
-    let { scanDirectory, removeLogs } = await import("./logs.js");
-    let logList = await scanDirectory(path);
+    let { scanDirectory, modifyLogs } = await import("./logs.js");
+    let logList = await scanDirectory(path); //returns [code,start,end], filePath
 
     if (logList.length > 0) {
-      console.log("Found logs:", logList);
-
+      // console.log("Found logs:", logList[0]);
+      for (const [logDetails, filePath] of logList) {
+        console.log(`File: ${filePath}`);
+        for (const log of logDetails) {
+          console.log(`   Line#: ${log.code}`);
+        }
+        console.log("\n");
+      }
       let confirm = options.yes;
 
       if (!confirm) {
@@ -36,10 +42,10 @@ program
       }
 
       if (confirm) {
-        for (const [matches, filePath] of logList) {
-          if (matches.length > 0) {
+        for (const [logDetails, filePath] of logList) {
+          if (logDetails.length > 0) {
             const content = await readFile(filePath, "utf8");
-            await removeLogs(filePath, content); // iagl this might be computationally expensive
+            await modifyLogs(filePath, content, logDetails); // Pass logDetails here!
           }
         }
         console.log("Logs removed.");
