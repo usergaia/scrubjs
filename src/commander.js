@@ -38,7 +38,7 @@ program
             choices: [
               { name: "Remove logs", value: "remove" },
               { name: "Comment out logs", value: "comment" },
-              { name: "Cancel", value: "skip" },
+              { name: "Cancel", value: null },
             ],
           },
         ]);

@@ -53,7 +53,7 @@ export async function scanDirectory(dir) {
  * @param {string} filePath - The path to the file to modify
  * @param {string} content - The original source code of the file
  * @param {Array<{start: number, end: number}>} logsToModify - An array of objects containing the start and end character offsets of console.log statements to modify
- * @param {string} mode - The modification mode, either
+ * @param {string} mode - The modification mode, either "remove" to delete the statements or "comment" to comment them out
  */
 export async function modifyLogs(filePath, content, logsToModify, mode) {
   if (mode === "comment") {
