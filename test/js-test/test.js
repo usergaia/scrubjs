@@ -1,3 +1,7 @@
+// -------------------------------
+// EXPECTED TO BE REMOVED
+// -------------------------------
+
 // Simple single-line
 console.log("simple");
 
@@ -30,28 +34,32 @@ class Baz {
 // With expressions
 console.log("sum:", 1 + 2);
 
-// With comments
+// With inline comments
 console.log("with comment"); // should be removed
 
-// Console with chained calls (should NOT be removed)
+// Whitespace and unusual formatting
+console.log("weird formatting");
+
+// No semicolon
+console.log("no semicolon");
+
+// -------------------------------
+// EXPECTED TO STAY (NOT REMOVED)
+// -------------------------------
+
+// Other console methods are not targeted
 console.error("error");
 console.warn("warn");
 console.info("info");
 
-// Console as a property (should NOT be removed)
+// Not the global console object
 obj.console.log("not global");
 
-// Console in a string (should NOT be removed)
+// Just text content, not executable code
 const str = "console.log('not a log')";
 
-// Console in a comment (should NOT be removed)
+// Inside a comment, not executable code
 // console.log("not a log");
 
-// Console with whitespace and unusual formatting
-console.log("weird formatting");
-
-// Console with no semicolon
-console.log("no semicolon");
-
-// Console with destructured assignment (should NOT be removed)
+// Destructured assignment, not a call expression
 const { log } = console;

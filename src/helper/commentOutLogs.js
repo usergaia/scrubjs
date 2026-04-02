@@ -31,7 +31,7 @@ export function commentOutLogs(content, logsToModify) {
  *
  * @param {string} content - The source code as a string.
  * @param {number} offset - The character offset to convert.
- * @returns {number} The index of the first non-empty line corresponding to the offset.
+ * @returns {number} The 0-based line index corresponding to the character offset.
  */
 function offsetToLine(content, offset) {
   let line = 0;
