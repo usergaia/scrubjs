@@ -13,7 +13,7 @@ program
   .option("-c, --comment", "Comment out logs")
   .action(async (path, options) => {
     let { scanDirectory, modifyLogs } = await import("./logs.js");
-    let logList = await scanDirectory(path);
+    let logList = await scanDirectory(path); // returns [[code, start, end], filePath]
 
     if (logList.length > 0) {
       for (const [logDetails, filePath] of logList) {
@@ -24,18 +24,16 @@ program
         console.log("\n");
       }
 
-      let action = null;
+      let task = null;
+      const hasTask = options.remove || options.comment;
 
-      if (options.remove) {
-        action = "remove";
-      } else if (options.comment) {
-        action = "comment";
+      if (hasTask) {
+        task = options.remove ? "remove" : "comment";
       } else {
-        // only prompt if no option was passed
-        const task = await inquirer.prompt([
+        const taskPrompt = await inquirer.prompt([
           {
             type: "select",
-            name: "action",
+            name: "task",
             message: "What do you want to do?",
             choices: [
               { name: "Remove logs", value: "remove" },
@@ -44,16 +42,15 @@ program
             ],
           },
         ]);
-        action = task.action;
+        task = taskPrompt.task;
       }
 
-      if (action === "remove") {
-        const answer = await inquirer.prompt([
+      if (task) {
+        const confirmPrompt = await inquirer.prompt([
           {
             type: "input",
             name: "confirm",
-            message:
-              "Are you sure you want to remove all console.log statements? (y/n)",
+            message: `Are you sure you want to ${task} all console.log statements? (y/n)`,
             validate: (input) => {
               const val = input.trim().toLowerCase();
               return val === "y" || val === "n"
@@ -62,44 +59,19 @@ program
             },
           },
         ]);
-        let confirm = answer.confirm.trim().toLowerCase() === "y";
+
+        let confirm = confirmPrompt.confirm.trim().toLowerCase() === "y";
+
         if (confirm) {
           for (const [logDetails, filePath] of logList) {
             if (logDetails.length > 0) {
               const content = await readFile(filePath, "utf8");
-              await modifyLogs(filePath, content, logDetails, "remove");
+              await modifyLogs(filePath, content, logDetails, task);
             }
           }
-          console.log("Logs removed.");
+          console.log(`Logs modified.`);
         } else {
-          console.log("Logs not removed.");
-        }
-      } else if (action === "comment") {
-        const answer = await inquirer.prompt([
-          {
-            type: "input",
-            name: "confirm",
-            message:
-              "Are you sure you want to comment all console.log statements? (y/n)",
-            validate: (input) => {
-              const val = input.trim().toLowerCase();
-              return val === "y" || val === "n"
-                ? true
-                : "Please enter 'y' or 'n'";
-            },
-          },
-        ]);
-        let confirm = answer.confirm.trim().toLowerCase() === "y";
-        if (confirm) {
-          for (const [logDetails, filePath] of logList) {
-            if (logDetails.length > 0) {
-              const content = await readFile(filePath, "utf8");
-              await modifyLogs(filePath, content, logDetails, "comment");
-            }
-          }
-          console.log("Logs commented out.");
-        } else {
-          console.log("Logs not commented out.");
+          console.log(`Logs not modified.`);
         }
       } else {
         console.log("No changes made.");

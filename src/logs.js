@@ -28,6 +28,12 @@ const parseOptions = {
   },
 };
 
+/***
+ * Scans a directory for JavaScript/TypeScript(wip) files, parses them, and extracts all console.log statements along with their positions.
+ *
+ * @param {string} dir - The directory to scan
+ * @returns {Promise<Array>} - A list of console.log statements with their positions and file paths
+ */
 export async function scanDirectory(dir) {
   const files = await readdir(dir);
   const logs = [];
@@ -41,6 +47,14 @@ export async function scanDirectory(dir) {
   return logs;
 }
 
+/***
+ * Modifies the source code of a file by either removing or commenting out specified console.log statements based on the provided mode.
+ *
+ * @param {string} filePath - The path to the file to modify
+ * @param {string} content - The original source code of the file
+ * @param {Array<{start: number, end: number}>} logsToModify - An array of objects containing the start and end character offsets of console.log statements to modify
+ * @param {string} mode - The modification mode, either
+ */
 export async function modifyLogs(filePath, content, logsToModify, mode) {
   if (mode === "comment") {
     const result = commentOutLogs(content, logsToModify);
