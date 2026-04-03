@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js"
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "lint": "eslint ."
   },
   "jest": {
     "testPathIgnorePatterns": [
@@ -19,6 +20,8 @@
     "logrm": "./src/commander.js"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.1.0",
     "jest": "^30.3.0",
     "prettier": "^3.8.1"
   },

@@ -24,7 +24,7 @@ program
         console.log("\n");
       }
 
-      let task = null;
+      let task;
       const hasTask = options.remove || options.comment;
 
       if (hasTask) {
@@ -78,4 +78,5 @@ program
       }
     }
   });
+
 await program.parseAsync(process.argv);
