@@ -1,32 +1,32 @@
 import os from "os";
 import path from "path";
 import { mkdtemp, readFile, rm, writeFile } from "fs/promises";
-import { modifyLogs, scanDirectory } from "../../src/logs.js";
+import { modifyLogs, scanPath } from "../../src/logs.js";
 
-const fixtureUrl = new URL("../js-test/test.js", import.meta.url);
+const fixtureUrl = new URL("../fixtures/js-test/test.js", import.meta.url);
 
 const expectedToStay = [
-  'console.error("error");',
-  'console.warn("warn");',
-  'console.info("info");',
+  'console.error("[ERROR] error");',
+  'console.warn("[WARN] warn");',
+  'console.info("[INFO] info");',
   'obj.console.log("not global");',
-  "const str = \"console.log('not a log')\";",
-  '// console.log("not a log");',
+  "const str = \"console.log('[NOT EXECUTED] in string')\";",
+  '// console.log("[NOT EXECUTED] in comment");',
   "const { log } = console;",
 ];
 
 const expectedToBeCommented = [
-  '// console.log("simple");',
-  '// console.log("multiple", "arguments", 123, { a: 1 });',
-  "// console.log(`template ${42}`);",
-  '// console.log("multiline", 123, { foo: "bar" });',
-  '//   console.log("inside function");',
-  '//   console.log("inside arrow");',
-  '//     console.log("inside class method");',
-  '// console.log("sum:", 1 + 2);',
-  '// console.log("with comment"); // should be removed',
-  '// console.log("weird formatting");',
-  '// console.log("no semicolon");',
+  '// console.log("[LOG 1] simple");',
+  '// console.log("[LOG 2] multiple", "arguments", 123, { a: 1 });',
+  "// console.log(`[LOG 3] template ${42}`);",
+  '// console.log("[LOG 4] multiline", 123, { foo: "bar" });',
+  '//   console.log("[LOG 5] inside function");',
+  '//   console.log("[LOG 6] inside arrow");',
+  '//     console.log("[LOG 7] inside class method");',
+  '// console.log("[LOG 8] sum:", 1 + 2);',
+  '// console.log("[LOG 9] with comment");',
+  '// console.log("[LOG 10] weird formatting");',
+  '// console.log("[LOG 11] no semicolon");',
 ];
 
 async function createFixtureWorkspace() {
@@ -44,11 +44,11 @@ function assertUntouchedLinesIntact(updated) {
 }
 
 describe("logs regression using js-test fixture", () => {
-  test("scanDirectory detects all global console.log calls", async () => {
+  test("scanPath detects all global console.log calls", async () => {
     const { tempDir, filePath } = await createFixtureWorkspace();
 
     try {
-      const [[logDetails, scannedPath]] = await scanDirectory(tempDir);
+      const [[logDetails, scannedPath]] = await scanPath(tempDir);
       expect(scannedPath).toBe(filePath);
       expect(logDetails).toHaveLength(11);
     } finally {
@@ -60,7 +60,7 @@ describe("logs regression using js-test fixture", () => {
     const { tempDir, filePath } = await createFixtureWorkspace();
 
     try {
-      const [[logDetails]] = await scanDirectory(tempDir);
+      const [[logDetails]] = await scanPath(tempDir);
       const source = await readFile(filePath, "utf8");
 
       await modifyLogs(filePath, source, logDetails, "remove");
@@ -68,8 +68,8 @@ describe("logs regression using js-test fixture", () => {
       const updated = await readFile(filePath, "utf8");
       assertUntouchedLinesIntact(updated);
 
-      const [[remainingLogs]] = await scanDirectory(tempDir);
-      expect(remainingLogs).toHaveLength(0);
+      const remainingResults = await scanPath(tempDir);
+      expect(remainingResults).toHaveLength(0);
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
@@ -79,7 +79,7 @@ describe("logs regression using js-test fixture", () => {
     const { tempDir, filePath } = await createFixtureWorkspace();
 
     try {
-      const [[logDetails]] = await scanDirectory(tempDir);
+      const [[logDetails]] = await scanPath(tempDir);
       const source = await readFile(filePath, "utf8");
 
       await modifyLogs(filePath, source, logDetails, "comment");
@@ -90,8 +90,8 @@ describe("logs regression using js-test fixture", () => {
       }
       assertUntouchedLinesIntact(updated);
 
-      const [[remainingLogs]] = await scanDirectory(tempDir);
-      expect(remainingLogs).toHaveLength(0);
+      const remainingResults = await scanPath(tempDir);
+      expect(remainingResults).toHaveLength(0);
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
