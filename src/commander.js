@@ -2,6 +2,7 @@
 import { readFile } from "fs/promises";
 import { Command } from "commander";
 import inquirer from "inquirer";
+import { scanPath, modifyLogs } from "./logs.js";
 
 const program = new Command();
 
@@ -12,8 +13,7 @@ program
   .option("-r, --remove", "Remove logs")
   .option("-c, --comment", "Comment out logs")
   .action(async (path, options) => {
-    let { scanDirectory, modifyLogs } = await import("./logs.js");
-    let logList = await scanDirectory(path); // returns [[code, start, end], filePath]
+    let logList = await scanPath(path); // returns [[code, start, end], filePath]
 
     if (logList.length > 0) {
       for (const [logDetails, filePath] of logList) {
