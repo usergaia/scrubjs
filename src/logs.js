@@ -1,8 +1,8 @@
-import { readdir, readFile, writeFile } from "fs/promises";
+import { readdir, readFile, writeFile, stat } from "fs/promises";
 import path from "path";
 import { print, visit } from "recast";
 import {
-  extractLogs,
+  processFile,
   checkTargetedConsoleLog,
   rescueLeadingComments,
   commentOutLogs,
@@ -10,21 +10,49 @@ import {
 import { getParser } from "./parser.js";
 
 /***
- * Scans a directory for JavaScript/TypeScript(wip) files, parses them, and extracts all console.log statements along with their positions.
+ * Scans a directory or file for JavaScript/TypeScript(wip) files, parses them, and extracts all console.log statements along with their positions.
  *
- * @param {string} dir - The directory to scan
+ * @param {string} path - The directory or file path to scan
  * @returns {Promise<Array>} - A list of console.log statements with their positions and file paths
  */
-export async function scanDirectory(dir) {
-  const files = await readdir(dir);
+export async function scanPath(scanTarget) {
   const logs = [];
-  for (const file of files) {
-    const filePath = path.join(dir, file);
-    const content = await readFile(filePath, "utf8");
-    const ast = getParser(content);
-    const logDetails = extractLogs(ast, content);
-    logs.push([logDetails, filePath]);
+  const supportedExtensions = [".js", ".ts", ".tsx", ".jsx"]; // react/ts wip
+  const fileStats = await stat(scanTarget);
+
+  function isFileValid(filePath) {
+    return supportedExtensions.some((ext) => filePath.endsWith(ext));
   }
+
+  async function handleFile() {
+    if (isFileValid(scanTarget)) {
+      const logDetails = await processFile(scanTarget);
+      if (logDetails) logs.push([logDetails, scanTarget]);
+    }
+  }
+
+  async function handleDirectory() {
+    const files = await readdir(scanTarget, { withFileTypes: true });
+    for (const file of files) {
+      const filePath = path.join(scanTarget, file.name);
+      if (file.isDirectory()) {
+        if (!file.name.startsWith(".") && file.name !== "node_modules") {
+          const nestedLogs = await scanPath(filePath);
+          logs.push(...nestedLogs);
+        }
+      } else if (isFileValid(filePath)) {
+        const logDetails = await processFile(filePath);
+        if (logDetails) logs.push([logDetails, filePath]);
+      }
+    }
+  }
+
+  if (fileStats.isDirectory()) {
+    await handleDirectory();
+  } else if (fileStats.isFile()) {
+    await handleFile();
+  }
+
   return logs;
 }
 
