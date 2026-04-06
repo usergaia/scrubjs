@@ -28,6 +28,8 @@ export default defineConfig([
       eqeqeq: ["error", "always"],
       "no-console": "off",
       "no-nested-ternary": "error",
+      "func-style": ["error", "declaration"],
+      "object-shorthand": ["error", "never"],
     },
   },
 ]);
