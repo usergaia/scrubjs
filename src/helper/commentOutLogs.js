@@ -9,11 +9,21 @@
 export function commentOutLogs(content, logsToModify) {
   const lines = content.split("\n");
 
-  const lineRanges = logsToModify.map(({ start, end }) => {
+  function getLineRanges({ start, end }) {
     const startLine = offsetToLine(content, start);
     const endLine = offsetToLine(content, end);
-    return { startLine, endLine };
-  });
+    return { startLine: startLine, endLine: endLine };
+  }
+
+  function offsetToLine(content, offset) {
+    let line = 0;
+    for (let i = 0; i < offset; i++) {
+      if (content[i] === "\n") line++;
+    }
+    return line;
+  }
+
+  const lineRanges = logsToModify.map(getLineRanges);
 
   lineRanges.sort((a, b) => b.startLine - a.startLine);
 
@@ -24,19 +34,4 @@ export function commentOutLogs(content, logsToModify) {
   }
 
   return lines.join("\n");
-}
-
-/**
- * Converts a character offset to a 0-based line index.
- *
- * @param {string} content - The source code as a string.
- * @param {number} offset - The character offset to convert.
- * @returns {number} The 0-based line index corresponding to the character offset.
- */
-function offsetToLine(content, offset) {
-  let line = 0;
-  for (let i = 0; i < offset; i++) {
-    if (content[i] === "\n") line++;
-  }
-  return line;
 }

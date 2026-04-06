@@ -9,22 +9,26 @@ import { simple } from "acorn-walk";
  */
 export function extractLogs(ast, content) {
   const matches = [];
+
+  function handleCallExpression(node) {
+    const { callee } = node;
+    if (
+      callee.type === "MemberExpression" &&
+      callee.object.type === "Identifier" &&
+      callee.object.name === "console" &&
+      callee.property.name === "log"
+    ) {
+      matches.push({
+        code: content.slice(node.start, node.end),
+        start: node.start,
+        end: node.end,
+      });
+    }
+  }
+
   simple(ast.program, {
-    CallExpression(node) {
-      const { callee } = node;
-      if (
-        callee.type === "MemberExpression" &&
-        callee.object.type === "Identifier" &&
-        callee.object.name === "console" &&
-        callee.property.name === "log"
-      ) {
-        matches.push({
-          code: content.slice(node.start, node.end),
-          start: node.start,
-          end: node.end,
-        });
-      }
-    },
+    CallExpression: handleCallExpression,
   });
+
   return matches;
 }

@@ -1,32 +1,13 @@
 import { readdir, readFile, writeFile } from "fs/promises";
 import path from "path";
-import recast from "recast";
+import { print, visit } from "recast";
 import {
   extractLogs,
-  isTargetedConsoleLog,
+  checkTargetedConsoleLog,
   rescueLeadingComments,
   commentOutLogs,
 } from "./helper/index.js";
-
-const { parse, print, visit } = recast;
-const acornParse = (await import("acorn")).parse;
-
-const parseOptions = {
-  parser: {
-    parse(src) {
-      const comments = [];
-      const ast = acornParse(src, {
-        ecmaVersion: "latest",
-        sourceType: "module",
-        locations: true,
-        ranges: true,
-        onComment: comments,
-      });
-      ast.comments = comments;
-      return ast;
-    },
-  },
-};
+import { getParser } from "./parser.js";
 
 /***
  * Scans a directory for JavaScript/TypeScript(wip) files, parses them, and extracts all console.log statements along with their positions.
@@ -40,7 +21,7 @@ export async function scanDirectory(dir) {
   for (const file of files) {
     const filePath = path.join(dir, file);
     const content = await readFile(filePath, "utf8");
-    const ast = parse(content, parseOptions);
+    const ast = getParser(content);
     const logDetails = extractLogs(ast, content);
     logs.push([logDetails, filePath]);
   }
@@ -56,6 +37,15 @@ export async function scanDirectory(dir) {
  * @param {string} mode - The modification mode, either "remove" to delete the statements or "comment" to comment them out
  */
 export async function modifyLogs(filePath, content, logsToModify, mode) {
+  function handleVisitExpressionStatement(nodePath) {
+    if (checkTargetedConsoleLog(nodePath.node, callSet)) {
+      rescueLeadingComments(nodePath);
+      nodePath.prune();
+      return false;
+    }
+    this.traverse(nodePath);
+  }
+
   if (mode === "comment") {
     const result = commentOutLogs(content, logsToModify);
     await writeFile(filePath, result, "utf8");
@@ -63,18 +53,11 @@ export async function modifyLogs(filePath, content, logsToModify, mode) {
   }
 
   // mode === "remove" (defaults to remove; might change in future if more modes are added)
-  const ast = parse(content, parseOptions);
+  const ast = getParser(content);
   const callSet = new Set(logsToModify.map((l) => `${l.start},${l.end}`));
 
   visit(ast, {
-    visitExpressionStatement(nodePath) {
-      if (isTargetedConsoleLog(nodePath.node, callSet)) {
-        rescueLeadingComments(nodePath);
-        nodePath.prune();
-        return false;
-      }
-      this.traverse(nodePath);
-    },
+    visitExpressionStatement: handleVisitExpressionStatement,
   });
 
   const { code } = print(ast, { reuseWhitespace: true });
