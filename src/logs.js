@@ -81,7 +81,7 @@ export async function modifyLogs(filePath, content, logsToModify, mode) {
   }
 
   // mode === "remove" (defaults to remove; might change in future if more modes are added)
-  const ast = getParser(content);
+  const ast = getParser(content, filePath);
   const callSet = new Set(logsToModify.map((l) => `${l.start},${l.end}`));
 
   visit(ast, {
