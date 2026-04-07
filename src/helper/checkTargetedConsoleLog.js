@@ -7,14 +7,20 @@
  */
 export function checkTargetedConsoleLog(node, callSet) {
   if (node.type !== "ExpressionStatement") return false;
+
   const expr = node.expression;
+
+  // Must be a direct console.log call — not a wrapping call like useEffect(...)
   if (expr.type !== "CallExpression") return false;
   const { callee } = expr;
-  return (
-    callee.type === "MemberExpression" &&
-    callee.object.type === "Identifier" &&
-    callee.object.name === "console" &&
-    callee.property.name === "log" &&
-    callSet.has(`${expr.start},${expr.end}`)
-  );
+  if (
+    callee.type !== "MemberExpression" ||
+    callee.object.type !== "Identifier" ||
+    callee.object.name !== "console" ||
+    callee.property.name !== "log"
+  )
+    return false;
+
+  // Final guard: the call itself must be in the targeted set
+  return callSet.has(`${expr.start},${expr.end}`);
 }

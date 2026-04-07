@@ -10,14 +10,14 @@ import {
 import { getParser } from "./parser.js";
 
 /***
- * Scans a directory or file for JavaScript/TypeScript(wip) files, parses them, and extracts all console.log statements along with their positions.
+ * Scans a directory or file for JavaScript/TypeScript/React files, parses them, and extracts all console.log statements along with their positions.
  *
  * @param {string} path - The directory or file path to scan
  * @returns {Promise<Array>} - A list of console.log statements with their positions and file paths
  */
 export async function scanPath(scanTarget) {
   const logs = [];
-  const supportedExtensions = [".js", ".ts", ".tsx", ".jsx"]; // react/ts wip
+  const supportedExtensions = [".js", ".ts", ".tsx", ".jsx"];
   const fileStats = await stat(scanTarget);
 
   function isFileValid(filePath) {

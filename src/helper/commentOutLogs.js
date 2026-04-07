@@ -7,31 +7,16 @@
  */
 
 export function commentOutLogs(content, logsToModify) {
-  const lines = content.split("\n");
+  const sorted = [...logsToModify].sort((a, b) => b.start - a.start);
+  let result = content;
 
-  function getLineRanges({ start, end }) {
-    const startLine = offsetToLine(content, start);
-    const endLine = offsetToLine(content, end);
-    return { startLine: startLine, endLine: endLine };
+  for (const { start, end, isJSXExpression } of sorted) {
+    const logCode = result.slice(start, end);
+
+    const replacement = isJSXExpression ? `/* ${logCode} */` : `// ${logCode}`;
+
+    result = result.slice(0, start) + replacement + result.slice(end);
   }
 
-  function offsetToLine(content, offset) {
-    let line = 0;
-    for (let i = 0; i < offset; i++) {
-      if (content[i] === "\n") line++;
-    }
-    return line;
-  }
-
-  const lineRanges = logsToModify.map(getLineRanges);
-
-  lineRanges.sort((a, b) => b.startLine - a.startLine);
-
-  for (const { startLine, endLine } of lineRanges) {
-    for (let i = startLine; i <= endLine; i++) {
-      lines[i] = "// " + lines[i];
-    }
-  }
-
-  return lines.join("\n");
+  return result;
 }
