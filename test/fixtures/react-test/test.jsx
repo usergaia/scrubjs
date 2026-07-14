@@ -63,8 +63,15 @@ const ComponentWithTemplate = () => {
 // Nested in function with JSX
 function FunctionComponent() {
   console.log("[LOG 9] in function component");
+  debugger;
   return <span>Span</span>;
 }
+
+// Debugger inside a component
+const ComponentWithDebugger = () => {
+  debugger;
+  return <div>Debug</div>;
+};
 
 // ============================================================
 // NOT EXECUTED / SHOULD STAY
@@ -75,6 +82,9 @@ function FunctionComponent() {
 
 // In string
 const str = "console.log('[NOT EXECUTED] in string')";
+
+// Debugger keyword inside a string, not a statement
+const debuggerStr = "debugger";
 
 // In JSX as text content (not executed)
 const ComponentWithText = () => <div>console.log("not executed")</div>;
@@ -94,6 +104,12 @@ log("[DESTRUCTURED] not a direct global console.log");
 // Property access (not global console)
 const obj = { console: { log: () => {} } };
 obj.console.log("not global");
+
+// Kept with // scrubjs-keep
+console.log("[KEEP] trailing marker"); // scrubjs-keep
+
+// scrubjs-keep
+console.log("[KEEP] leading marker");
 
 // In conditional render
 const ComponentWithConditional = ({ show }) => {

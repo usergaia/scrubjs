@@ -1,8 +1,11 @@
-// Splice targeted statements out of the original string, back-to-front. A
-// statement alone on its line takes the whole line (and its newline) so no blank
-// line is left; one sharing a line with other code is removed on its own.
-export function removeLogs(content, logsToModify) {
-  const removable = logsToModify
+/**
+ * Splices each match out of `content`, back-to-front.
+ * @param {string} content source to edit
+ * @param {object[]} findings findings carrying a `stmtStart`/`stmtEnd` span
+ * @returns {string} the edited source
+ */
+export function removeStatements(content, findings) {
+  const removable = findings
     .filter((log) => typeof log.stmtStart === "number")
     .sort((a, b) => b.stmtStart - a.stmtStart);
 
@@ -20,7 +23,7 @@ export function removeLogs(content, logsToModify) {
     const after = result.slice(stmtEnd, lineEnd);
 
     if (before.trim() === "" && after.trim() === "") {
-      // Statement occupies its own line — drop the whole line and its newline.
+      // A statement alone on its line takes the whole line, so no blank remains.
       from = lineStart;
       to = lineEnd < result.length ? lineEnd + 1 : lineEnd;
     }

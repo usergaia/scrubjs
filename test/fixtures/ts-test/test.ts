@@ -48,6 +48,14 @@ function generic<T>(val: T): void {
   console.log("[LOG 12] inside generic", val);
 }
 
+// Debugger statement
+debugger;
+
+// Debugger inside a function
+function withDebugger(): void {
+  debugger;
+}
+
 // ============================================================
 // NOT EXECUTED / SHOULD STAY
 // ============================================================
@@ -61,6 +69,9 @@ log("[DESTRUCTURED] not a global console.log");
 // Console in a string
 const str2: string = "console.log('[NOT EXECUTED] in string')";
 
+// Debugger keyword inside a string, not a statement
+const debuggerStr: string = "debugger";
+
 // Console as a property
 obj.console.log("not global");
 
@@ -68,3 +79,12 @@ obj.console.log("not global");
 console.error("[ERROR] error");
 console.warn("[WARN] warn");
 console.info("[INFO] info");
+
+// ============================================================
+// KEPT WITH // scrubjs-keep
+// ============================================================
+
+console.log("[KEEP] trailing marker"); // scrubjs-keep
+
+// scrubjs-keep
+console.log("[KEEP] leading marker");

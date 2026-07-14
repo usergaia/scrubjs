@@ -1,7 +1,7 @@
 import os from "os";
 import path from "path";
-import { mkdtemp, readFile, rm, writeFile } from "fs/promises";
-import { modifyLogs, scanPath } from "../../src/logs.js";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "fs/promises";
+import { modify, scanPath } from "../../src/scan.js";
 
 async function createFixtureWorkspace(fixtureUrl) {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "logrm-regression-"));
@@ -29,6 +29,9 @@ describe("logs regression using js-test fixture", () => {
     "const str = \"console.log('[NOT EXECUTED] in string')\";",
     '// console.log("[NOT EXECUTED] in comment");',
     "const { log } = console;",
+    'const debuggerStr = "debugger";',
+    'console.log("[KEEP] trailing marker"); // scrubjs-keep',
+    'console.log("[KEEP] leading marker");',
   ];
 
   const expectedToBeCommented = [
@@ -43,28 +46,30 @@ describe("logs regression using js-test fixture", () => {
     '// console.log("[LOG 9] with comment");',
     '// console.log("[LOG 10] weird formatting");',
     '// console.log("[LOG 11] no semicolon");',
+    "// debugger;",
+    "  // debugger;",
   ];
 
   test("scanPath detects all global console.log calls", async () => {
     const { tempDir, filePath } = await createFixtureWorkspace(fixtureUrl);
 
     try {
-      const [[logDetails, scannedPath]] = await scanPath(tempDir);
+      const [[findings, scannedPath]] = await scanPath(tempDir);
       expect(scannedPath).toBe(filePath);
-      expect(logDetails).toHaveLength(11);
+      expect(findings).toHaveLength(13);
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
   });
 
-  test("modifyLogs remove mode removes targeted console.log statements only", async () => {
+  test("modify remove mode removes targeted console.log statements only", async () => {
     const { tempDir, filePath } = await createFixtureWorkspace(fixtureUrl);
 
     try {
-      const [[logDetails]] = await scanPath(tempDir);
+      const [[findings]] = await scanPath(tempDir);
       const source = await readFile(filePath, "utf8");
 
-      await modifyLogs(filePath, source, logDetails, "remove");
+      await modify(filePath, source, findings, "remove");
 
       const updated = await readFile(filePath, "utf8");
       assertUntouchedLinesIntact(updated, expectedToStay);
@@ -76,14 +81,14 @@ describe("logs regression using js-test fixture", () => {
     }
   });
 
-  test("modifyLogs comment mode comments targeted lines and keeps non-targeted calls", async () => {
+  test("modify comment mode comments targeted lines and keeps non-targeted calls", async () => {
     const { tempDir, filePath } = await createFixtureWorkspace(fixtureUrl);
 
     try {
-      const [[logDetails]] = await scanPath(tempDir);
+      const [[findings]] = await scanPath(tempDir);
       const source = await readFile(filePath, "utf8");
 
-      await modifyLogs(filePath, source, logDetails, "comment");
+      await modify(filePath, source, findings, "comment");
 
       const updated = await readFile(filePath, "utf8");
       for (const snippet of expectedToBeCommented) {
@@ -110,6 +115,9 @@ describe("logs regression using ts-test fixture", () => {
     "const str2: string = \"console.log('[NOT EXECUTED] in string')\";",
     '// console.log("[NOT EXECUTED] in comment");',
     'log("[DESTRUCTURED] not a global console.log");',
+    'const debuggerStr: string = "debugger";',
+    'console.log("[KEEP] trailing marker"); // scrubjs-keep',
+    'console.log("[KEEP] leading marker");',
   ];
 
   const expectedToBeCommented = [
@@ -125,28 +133,30 @@ describe("logs regression using ts-test fixture", () => {
     '// console.log("[LOG 10] weird formatting");',
     '// console.log("[LOG 11] no semicolon");',
     '  // console.log("[LOG 12] inside generic", val);',
+    "// debugger;",
+    "  // debugger;",
   ];
 
   test("scanPath detects all global console.log calls", async () => {
     const { tempDir, filePath } = await createFixtureWorkspace(fixtureUrl);
 
     try {
-      const [[logDetails, scannedPath]] = await scanPath(tempDir);
+      const [[findings, scannedPath]] = await scanPath(tempDir);
       expect(scannedPath).toBe(filePath);
-      expect(logDetails).toHaveLength(12);
+      expect(findings).toHaveLength(14);
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
   });
 
-  test("modifyLogs remove mode removes targeted console.log statements only", async () => {
+  test("modify remove mode removes targeted console.log statements only", async () => {
     const { tempDir, filePath } = await createFixtureWorkspace(fixtureUrl);
 
     try {
-      const [[logDetails]] = await scanPath(tempDir);
+      const [[findings]] = await scanPath(tempDir);
       const source = await readFile(filePath, "utf8");
 
-      await modifyLogs(filePath, source, logDetails, "remove");
+      await modify(filePath, source, findings, "remove");
 
       const updated = await readFile(filePath, "utf8");
       assertUntouchedLinesIntact(updated, expectedToStay);
@@ -158,14 +168,14 @@ describe("logs regression using ts-test fixture", () => {
     }
   });
 
-  test("modifyLogs comment mode comments targeted lines and keeps non-targeted calls", async () => {
+  test("modify comment mode comments targeted lines and keeps non-targeted calls", async () => {
     const { tempDir, filePath } = await createFixtureWorkspace(fixtureUrl);
 
     try {
-      const [[logDetails]] = await scanPath(tempDir);
+      const [[findings]] = await scanPath(tempDir);
       const source = await readFile(filePath, "utf8");
 
-      await modifyLogs(filePath, source, logDetails, "comment");
+      await modify(filePath, source, findings, "comment");
 
       const updated = await readFile(filePath, "utf8");
       for (const snippet of expectedToBeCommented) {
@@ -196,6 +206,9 @@ describe("logs regression using jsx-test fixture", () => {
     'console.log("[LOG 5] in JSX expression")',
     '{show && console.log("[NOT EXECUTED] conditional render")}',
     'console.log("[NOT EXECUTED] arrow function")',
+    'const debuggerStr = "debugger";',
+    'console.log("[KEEP] trailing marker"); // scrubjs-keep',
+    'console.log("[KEEP] leading marker");',
   ];
 
   const expectedToBeCommented = [
@@ -207,28 +220,29 @@ describe("logs regression using jsx-test fixture", () => {
     '  // console.log("[LOG 7] in custom hook");',
     "  // console.log(`[LOG 8] template ${name}`);",
     '  // console.log("[LOG 9] in function component");',
+    "  // debugger;",
   ];
 
   test("scanPath detects all global console.log calls", async () => {
     const { tempDir, filePath } = await createFixtureWorkspace(fixtureUrl);
 
     try {
-      const [[logDetails, scannedPath]] = await scanPath(tempDir);
+      const [[findings, scannedPath]] = await scanPath(tempDir);
       expect(scannedPath).toBe(filePath);
-      expect(logDetails).toHaveLength(8);
+      expect(findings).toHaveLength(10);
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
   });
 
-  test("modifyLogs remove mode removes targeted console.log statements only", async () => {
+  test("modify remove mode removes targeted console.log statements only", async () => {
     const { tempDir, filePath } = await createFixtureWorkspace(fixtureUrl);
 
     try {
-      const [[logDetails]] = await scanPath(tempDir);
+      const [[findings]] = await scanPath(tempDir);
       const source = await readFile(filePath, "utf8");
 
-      await modifyLogs(filePath, source, logDetails, "remove");
+      await modify(filePath, source, findings, "remove");
 
       const updated = await readFile(filePath, "utf8");
       assertUntouchedLinesIntact(updated, expectedToStay);
@@ -240,14 +254,14 @@ describe("logs regression using jsx-test fixture", () => {
     }
   });
 
-  test("modifyLogs comment mode comments targeted lines and keeps non-targeted calls", async () => {
+  test("modify comment mode comments targeted lines and keeps non-targeted calls", async () => {
     const { tempDir, filePath } = await createFixtureWorkspace(fixtureUrl);
 
     try {
-      const [[logDetails]] = await scanPath(tempDir);
+      const [[findings]] = await scanPath(tempDir);
       const source = await readFile(filePath, "utf8");
 
-      await modifyLogs(filePath, source, logDetails, "comment");
+      await modify(filePath, source, findings, "comment");
 
       const updated = await readFile(filePath, "utf8");
       for (const snippet of expectedToBeCommented) {
@@ -278,6 +292,9 @@ describe("logs regression using tsx-test fixture", () => {
     '{void console.log("[LOG 5] in JSX expression")}',
     '{show && console.log("[LOG 6] conditional render")}',
     'console.log("[LOG 7] else branch")',
+    'const debuggerStr: string = "debugger";',
+    'console.log("[KEEP] trailing marker"); // scrubjs-keep',
+    'console.log("[KEEP] leading marker");',
   ];
 
   const expectedToBeCommented = [
@@ -288,28 +305,29 @@ describe("logs regression using tsx-test fixture", () => {
     '        // console.log("[LOG 8] in map", item);',
     '  // console.log("[LOG 9] in custom hook");',
     "  // console.log(`[LOG 10] template ${name}`);",
+    "  // debugger;",
   ];
 
   test("scanPath detects all global console.log calls", async () => {
     const { tempDir, filePath } = await createFixtureWorkspace(fixtureUrl);
 
     try {
-      const [[logDetails, scannedPath]] = await scanPath(tempDir);
+      const [[findings, scannedPath]] = await scanPath(tempDir);
       expect(scannedPath).toBe(filePath);
-      expect(logDetails).toHaveLength(7);
+      expect(findings).toHaveLength(9);
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
   });
 
-  test("modifyLogs remove mode removes targeted console.log statements only", async () => {
+  test("modify remove mode removes targeted console.log statements only", async () => {
     const { tempDir, filePath } = await createFixtureWorkspace(fixtureUrl);
 
     try {
-      const [[logDetails]] = await scanPath(tempDir);
+      const [[findings]] = await scanPath(tempDir);
       const source = await readFile(filePath, "utf8");
 
-      await modifyLogs(filePath, source, logDetails, "remove");
+      await modify(filePath, source, findings, "remove");
 
       const updated = await readFile(filePath, "utf8");
       assertUntouchedLinesIntact(updated, expectedToStay);
@@ -321,14 +339,14 @@ describe("logs regression using tsx-test fixture", () => {
     }
   });
 
-  test("modifyLogs comment mode comments targeted lines and keeps non-targeted calls", async () => {
+  test("modify comment mode comments targeted lines and keeps non-targeted calls", async () => {
     const { tempDir, filePath } = await createFixtureWorkspace(fixtureUrl);
 
     try {
-      const [[logDetails]] = await scanPath(tempDir);
+      const [[findings]] = await scanPath(tempDir);
       const source = await readFile(filePath, "utf8");
 
-      await modifyLogs(filePath, source, logDetails, "comment");
+      await modify(filePath, source, findings, "comment");
 
       const updated = await readFile(filePath, "utf8");
       for (const snippet of expectedToBeCommented) {
@@ -376,8 +394,8 @@ describe("line-ending preservation regression", () => {
     test(`comment mode preserves ${label} line endings and does not corrupt code`, async () => {
       const { tempDir, filePath } = await writeSource(source);
       try {
-        const [[logDetails]] = await scanPath(tempDir);
-        await modifyLogs(filePath, source, logDetails, "comment");
+        const [[findings]] = await scanPath(tempDir);
+        await modify(filePath, source, findings, "comment");
 
         const updated = await readFile(filePath, "utf8");
         // No console.log call survives the comment pass.
@@ -395,8 +413,8 @@ describe("line-ending preservation regression", () => {
     test(`remove mode preserves ${label} line endings and drops the logs`, async () => {
       const { tempDir, filePath } = await writeSource(source);
       try {
-        const [[logDetails]] = await scanPath(tempDir);
-        await modifyLogs(filePath, source, logDetails, "remove");
+        const [[findings]] = await scanPath(tempDir);
+        await modify(filePath, source, findings, "remove");
 
         const updated = await readFile(filePath, "utf8");
         expect(await scanPath(tempDir)).toHaveLength(0);
@@ -410,4 +428,131 @@ describe("line-ending preservation regression", () => {
       }
     });
   }
+});
+
+describe("rule detection", () => {
+  const source = [
+    "function f() {",
+    '  console.log("log");',
+    '  console.warn("warn");',
+    '  console.error("err");',
+    "  debugger;",
+    "  return 1;",
+    "}",
+    "",
+  ].join("\n");
+
+  async function writeSource() {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "scrubjs-rules-"));
+    const filePath = path.join(tempDir, "test.js");
+    await writeFile(filePath, source, "utf8");
+    return { tempDir, filePath };
+  }
+
+  test("targets console.log and debugger by default", async () => {
+    const { tempDir } = await writeSource();
+    try {
+      const [[findings]] = await scanPath(tempDir);
+      expect(findings.map((finding) => finding.code)).toEqual([
+        'console.log("log")',
+        "debugger;",
+      ]);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test("--methods opts into other console methods", async () => {
+    const { tempDir } = await writeSource();
+    try {
+      const [[findings]] = await scanPath(tempDir, {
+        methods: ["log", "warn", "error"],
+      });
+      const codes = findings.map((finding) => finding.code);
+      expect(codes).toContain('console.log("log")');
+      expect(codes).toContain('console.warn("warn")');
+      expect(codes).toContain('console.error("err")');
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test("debugger detection can be disabled", async () => {
+    const { tempDir } = await writeSource();
+    try {
+      const [[findings]] = await scanPath(tempDir, {
+        methods: ["log"],
+        debugger: false,
+      });
+      expect(findings.map((finding) => finding.code)).toEqual([
+        'console.log("log")',
+      ]);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test("debugger statements comment and remove cleanly", async () => {
+    const { tempDir, filePath } = await writeSource();
+    try {
+      const [[findings]] = await scanPath(tempDir);
+      const debuggers = findings.filter((finding) => finding.kind === "debugger");
+
+      await modify(filePath, source, debuggers, "comment");
+      expect(await readFile(filePath, "utf8")).toContain("  // debugger;");
+
+      await writeFile(filePath, source, "utf8");
+      await modify(filePath, source, debuggers, "remove");
+      const removed = await readFile(filePath, "utf8");
+      expect(removed).not.toContain("debugger");
+      expect(removed).toContain('console.log("log");');
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("ignore mechanisms", () => {
+  test("a scrubjs-keep comment excludes the marked statement", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "scrubjs-keep-"));
+    const filePath = path.join(tempDir, "test.js");
+    const source = [
+      'console.log("gone");',
+      'console.log("kept trailing"); // scrubjs-keep',
+      "debugger;",
+      "// scrubjs-keep",
+      'console.log("kept leading");',
+      "",
+    ].join("\n");
+    await writeFile(filePath, source, "utf8");
+    try {
+      const [[findings]] = await scanPath(tempDir, { cwd: tempDir });
+      // A trailing marker protects only its own line, so the debugger stays found.
+      expect(findings.map((finding) => finding.code)).toEqual([
+        'console.log("gone")',
+        "debugger;",
+      ]);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test(".scrubjsignore skips matched files", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "scrubjs-ignore-"));
+    await mkdir(path.join(tempDir, "scripts"));
+    await writeFile(path.join(tempDir, "app.js"), 'console.log("app");\n', "utf8");
+    await writeFile(
+      path.join(tempDir, "scripts", "seed.js"),
+      'console.log("seed");\n',
+      "utf8",
+    );
+    await writeFile(path.join(tempDir, ".scrubjsignore"), "scripts/\n", "utf8");
+    try {
+      const results = await scanPath(tempDir, { cwd: tempDir });
+      const files = results.map(([, filePath]) => path.basename(filePath));
+      expect(files).toEqual(["app.js"]);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
 });

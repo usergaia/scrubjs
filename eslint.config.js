@@ -15,6 +15,7 @@ export default defineConfig([
         module: "readonly",
         console: "readonly",
         AbortController: "readonly",
+        URL: "readonly",
       },
     },
     rules: {

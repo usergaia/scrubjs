@@ -75,6 +75,18 @@ const ComponentWithTemplate: React.FC = () => {
   return <div>{name}</div>;
 };
 
+// Debugger inside a component
+const ComponentWithDebugger: React.FC = () => {
+  debugger;
+  return <div>Debug</div>;
+};
+
+// Debugger inside a custom hook
+const useDebugHook = () => {
+  debugger;
+  return "value";
+};
+
 // ============================================================
 // NOT EXECUTED / SHOULD STAY
 // ============================================================
@@ -84,6 +96,9 @@ const ComponentWithTemplate: React.FC = () => {
 
 // In string
 const str: string = "console.log('[NOT EXECUTED] in string')";
+
+// Debugger keyword inside a string, not a statement
+const debuggerStr: string = "debugger";
 
 // In JSX as text content (not executed)
 const ComponentWithText: React.FC = () => (
@@ -105,3 +120,9 @@ log("[DESTRUCTURED] not a direct global console.log");
 // Property access (not global console)
 const obj = { console: { log: (msg: string) => {} } };
 obj.console.log("not global");
+
+// Kept with // scrubjs-keep
+console.log("[KEEP] trailing marker"); // scrubjs-keep
+
+// scrubjs-keep
+console.log("[KEEP] leading marker");

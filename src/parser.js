@@ -6,9 +6,12 @@ const TsParser = Parser.extend(tsPlugin());
 const JsxParser = Parser.extend(jsx());
 const TsxParser = Parser.extend(tsPlugin(), jsx());
 
-// Parse the original source as-is so node offsets map exactly onto `src`.
-// (Not recast: it normalizes newlines to CRLF and expands tabs, which shifts
-// offsets and would corrupt the downstream string-splicing.)
+/**
+ * Parses `src` as-is into an acorn AST so node offsets map onto it directly.
+ * @param {string} src source code to parse
+ * @param {string} [filePath] path used to pick the JS/TS/JSX/TSX parser
+ * @returns {object} the acorn Program AST, with a `comments` array attached
+ */
 export function getParser(src, filePath = "") {
   const comments = [];
   const isTS = filePath.endsWith(".ts");

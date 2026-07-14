@@ -1,15 +1,17 @@
-import { ancestor, base } from "acorn-walk";
-import { extend } from "acorn-jsx-walk";
+import { ancestor, base } from "./walk.js";
 
-extend(base);
+const DEFAULT_METHODS = ["log"];
 
-// Match only console.log calls whose direct parent is an ExpressionStatement —
-// logs that stand alone as a statement, which are the ones safe to both comment
-// and remove. This skips `a && log()` / ternaries, `{log()}` and `{void log()}`
-// in JSX, `() => log()` arrow returns, and `log()` as a call argument; a log in
-// a `.map()` block body still has an ExpressionStatement parent, so it's kept.
-export function extractLogs(ast, content) {
-  const matches = [];
+/**
+ * Finds standalone `console.<method>` statements, the ones safe to change.
+ * @param {object} ast acorn Program AST to walk
+ * @param {string} content source the AST was parsed from
+ * @param {string[]} [methods] console method names to match
+ * @returns {object[]} the detected findings
+ */
+export function detectConsole(ast, content, methods = DEFAULT_METHODS) {
+  const wanted = new Set(methods);
+  const findings = [];
 
   ancestor(
     ast,
@@ -20,14 +22,15 @@ export function extractLogs(ast, content) {
           callee.type !== "MemberExpression" ||
           callee.object.type !== "Identifier" ||
           callee.object.name !== "console" ||
-          callee.property.name !== "log"
+          !wanted.has(callee.property.name)
         )
           return;
 
         const parent = ancestors[ancestors.length - 2];
         if (parent?.type !== "ExpressionStatement") return;
 
-        matches.push({
+        findings.push({
+          kind: "console." + callee.property.name,
           code: content.slice(node.start, node.end),
           start: node.start,
           end: node.end,
@@ -40,5 +43,5 @@ export function extractLogs(ast, content) {
     base,
   );
 
-  return matches;
+  return findings;
 }

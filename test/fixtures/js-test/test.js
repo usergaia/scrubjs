@@ -43,6 +43,14 @@ console.log("[LOG 10] weird formatting");
 // No semicolon
 console.log("[LOG 11] no semicolon");
 
+// Debugger statement
+debugger;
+
+// Debugger inside a function
+function withDebugger() {
+  debugger;
+}
+
 // ============================================================
 // NOT EXECUTED / SHOULD STAY
 // ============================================================
@@ -56,6 +64,9 @@ const { log } = console;
 // Just text content, not executable code
 const str = "console.log('[NOT EXECUTED] in string')";
 
+// Debugger keyword inside a string, not a statement
+const debuggerStr = "debugger";
+
 // Not the global console object
 const obj = { console };
 obj.console.log("not global");
@@ -64,3 +75,12 @@ obj.console.log("not global");
 console.error("[ERROR] error");
 console.warn("[WARN] warn");
 console.info("[INFO] info");
+
+// ============================================================
+// KEPT WITH // scrubjs-keep
+// ============================================================
+
+console.log("[KEEP] trailing marker"); // scrubjs-keep
+
+// scrubjs-keep
+console.log("[KEEP] leading marker");

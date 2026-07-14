@@ -1,51 +1,81 @@
 import path from "path";
 import chalk from "chalk";
-import { commentOutLogs } from "./helper/index.js";
+import { commentOut } from "./helper/index.js";
 
 // chalk auto-disables color for non-TTY output and when NO_COLOR is set.
 
+/**
+ * A path relative to the cwd when that is shorter, else the original.
+ * @param {string} filePath absolute path to shorten
+ * @returns {string} the display path
+ */
 export function displayPath(filePath) {
   const relative = path.relative(process.cwd(), filePath);
   return relative && relative.length < filePath.length ? relative : filePath;
 }
 
-export function formatLogLabel(code) {
+/**
+ * A finding's code collapsed to one capped line for list labels.
+ * @param {string} code source snippet of the finding
+ * @returns {string} the single-line label
+ */
+export function formatLabel(code) {
   const oneLine = code.replace(/\s+/g, " ").trim();
   return oneLine.length > 70 ? oneLine.slice(0, 67) + "…" : oneLine;
 }
 
+/**
+ * A dimmed, right-aligned line-number gutter.
+ * @param {number|string} line line number, or blank for continuation
+ * @returns {string} the styled gutter
+ */
 function gutter(line) {
   return chalk.dim(String(line).padStart(4));
 }
 
+/**
+ * A success line prefixed with a green check.
+ * @param {string} text message to show
+ * @returns {string} the styled line
+ */
 export function ok(text) {
   return `${chalk.green("✓")} ${text}`;
 }
 
-// Grouped, colored listing of every detected log — used for the --all preview.
-export function renderList(logList) {
+/**
+ * Lists every finding for the --all preview, grouped by file.
+ * @param {Array} fileResults `[[findings, filePath], ...]` to list
+ * @returns {string} the rendered listing
+ */
+export function renderList(fileResults) {
   const out = [];
-  for (const [logDetails, filePath] of logList) {
+  for (const [findings, filePath] of fileResults) {
     out.push(chalk.underline(displayPath(filePath)));
-    for (const log of logDetails) {
-      out.push(`${gutter(log.line)}  ${chalk.cyan(formatLogLabel(log.code))}`);
+    for (const finding of findings) {
+      out.push(`${gutter(finding.line)}  ${chalk.cyan(formatLabel(finding.code))}`);
     }
   }
   return out.join("\n");
 }
 
-// One log shown in its surrounding code with the colored change — used as the
-// checkbox description panel so each choice is reviewed in context.
-export function renderContext(content, log, task, contextLines = 2) {
+/**
+ * Shows a finding in surrounding code with its change, for the checkbox panel.
+ * @param {string} content full source of the file
+ * @param {object} finding the finding to preview
+ * @param {string} task "comment" or "remove"
+ * @param {number} [contextLines] lines of context on each side
+ * @returns {string} the rendered panel
+ */
+export function renderContext(content, finding, task, contextLines = 2) {
   const lines = content.split(/\r\n|\r|\n/);
-  const startLine = log.line;
-  const span = content.slice(log.stmtStart, log.stmtEnd);
+  const startLine = finding.line;
+  const span = content.slice(finding.stmtStart, finding.stmtEnd);
   const endLine = startLine + (span.match(/\n/g) || []).length;
   const from = Math.max(1, startLine - contextLines);
   const to = Math.min(lines.length, endLine + contextLines);
   const after =
     task === "comment"
-      ? commentOutLogs(content, [log]).split(/\r\n|\r|\n/)
+      ? commentOut(content, [finding]).split(/\r\n|\r|\n/)
       : null;
 
   const out = [];
@@ -64,15 +94,21 @@ export function renderContext(content, log, task, contextLines = 2) {
   return out.join("\n");
 }
 
-// Colored diff of what a change would do to one file, without writing it.
-// Comment mode keeps the line count, so a line-index compare is exact; remove
-// mode drops whole lines, so the removed lines are taken straight from the spans.
-export function renderFileDiff(filePath, content, logs, task) {
+/**
+ * A colored preview of one file's change, written nowhere.
+ * @param {string} filePath file being previewed
+ * @param {string} content full source of the file
+ * @param {object[]} findings findings selected for the file
+ * @param {string} task "comment" or "remove"
+ * @returns {string} the rendered diff
+ */
+export function renderFileDiff(filePath, content, findings, task) {
   const lines = content.split(/\r\n|\r|\n/);
   const out = [chalk.underline(displayPath(filePath))];
 
   if (task === "comment") {
-    const after = commentOutLogs(content, logs).split(/\r\n|\r|\n/);
+    // Comment mode keeps the line count, so comparing by index is exact.
+    const after = commentOut(content, findings).split(/\r\n|\r|\n/);
     for (let i = 0; i < lines.length; i += 1) {
       if (lines[i] !== after[i]) {
         out.push(`${gutter(i + 1)} ${chalk.red("- " + lines[i])}`);
@@ -80,11 +116,12 @@ export function renderFileDiff(filePath, content, logs, task) {
       }
     }
   } else {
+    // Remove shifts later lines, so removed lines come from the spans.
     const removed = new Set();
-    for (const log of logs) {
-      const span = content.slice(log.stmtStart, log.stmtEnd);
+    for (const finding of findings) {
+      const span = content.slice(finding.stmtStart, finding.stmtEnd);
       const extra = (span.match(/\n/g) || []).length;
-      for (let line = log.line; line <= log.line + extra; line += 1) {
+      for (let line = finding.line; line <= finding.line + extra; line += 1) {
         removed.add(line);
       }
     }
