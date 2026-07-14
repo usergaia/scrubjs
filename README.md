@@ -15,14 +15,16 @@ npx scrubjs scan <path>
 ## Usage
 
 ```sh
-scrubjs scan <path> [options]
+scrubjs scan [path] [options]
 ```
 
-- `<path>`: a file or directory. Directories are scanned recursively (skipping dotfolders and `node_modules`).
+- `[path]`: a file or directory (defaults to the current directory). Directories are scanned recursively (skipping dotfolders and `node_modules`).
 - `-r, --remove`: remove the matched statements.
 - `-c, --comment`: comment them out.
 - `-a, --all`: apply to every detected statement without the interactive pick list (scriptable / non-interactive).
 - `-d, --dry-run`: print a colored diff of what would change and write nothing.
+- `-s, --staged`: scan only git-staged files.
+- `--check`: exit non-zero if any statements are found, and change nothing (for CI).
 - `-m, --methods <list>`: comma-separated `console` methods to target (default `log`, e.g. `--methods log,warn,error`).
 - `--no-debugger`: leave `debugger` statements alone (they're targeted by default).
 - With neither action flag, `scrubjs` asks whether to remove or comment.
@@ -75,3 +77,21 @@ console.log("real output, keep this"); // scrubjs-keep
 // scrubjs-keep
 console.log("also kept");
 ```
+
+## Pre-commit and CI
+
+`--check` scans and exits non-zero when it finds any statements, without changing files. Combined with `--staged`, it checks only what you are about to commit.
+
+As a pre-commit hook (for example with husky, in `.husky/pre-commit`):
+
+```sh
+npx scrubjs scan --staged --check
+```
+
+In CI, check the whole project:
+
+```sh
+npx scrubjs scan --check
+```
+
+Statements marked with `// scrubjs-keep` and files listed in `.scrubjsignore` are excluded, so the check only fails on real leftover debug statements.
