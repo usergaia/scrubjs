@@ -1,37 +1,20 @@
-/**
- * Comments out specified log statements in the source code by prefixing their lines with "// ".
- *
- * @param {string} content - The source code as a string.
- * @param {Array<{start: number, end: number}>} logsToModify - Array of objects with start and end character offsets for each log to comment out.
- * @returns {string} The commented source code with specified logs commented out.
- */
-
+// Comment out each log by prefixing every physical line of its source range with
+// "// " (back-to-front so earlier offsets stay valid). Prefixing each line keeps
+// multiline calls fully commented.
 export function commentOutLogs(content, logsToModify) {
-  const lines = content.split("\n");
+  const sorted = [...logsToModify].sort((a, b) => b.start - a.start);
+  let result = content;
 
-  function getLineRanges({ start, end }) {
-    const startLine = offsetToLine(content, start);
-    const endLine = offsetToLine(content, end);
-    return { startLine: startLine, endLine: endLine };
+  for (const { start, end } of sorted) {
+    const logCode = result.slice(start, end);
+
+    const replacement = logCode
+      .split("\n")
+      .map((line) => `// ${line}`)
+      .join("\n");
+
+    result = result.slice(0, start) + replacement + result.slice(end);
   }
 
-  function offsetToLine(content, offset) {
-    let line = 0;
-    for (let i = 0; i < offset; i++) {
-      if (content[i] === "\n") line++;
-    }
-    return line;
-  }
-
-  const lineRanges = logsToModify.map(getLineRanges);
-
-  lineRanges.sort((a, b) => b.startLine - a.startLine);
-
-  for (const { startLine, endLine } of lineRanges) {
-    for (let i = startLine; i <= endLine; i++) {
-      lines[i] = "// " + lines[i];
-    }
-  }
-
-  return lines.join("\n");
+  return result;
 }
