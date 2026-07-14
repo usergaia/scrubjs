@@ -14,6 +14,7 @@ export default defineConfig([
         __dirname: "readonly",
         module: "readonly",
         console: "readonly",
+        AbortController: "readonly",
       },
     },
     rules: {
