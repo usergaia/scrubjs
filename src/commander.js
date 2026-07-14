@@ -5,7 +5,7 @@ import { Command } from "commander";
 import { select, checkbox, Separator } from "@inquirer/prompts";
 import chalk from "chalk";
 import ora from "ora";
-import { scanPath, modify } from "./scan.js";
+import { scanPath, scanStaged, modify } from "./scan.js";
 import {
   displayPath,
   formatLabel,
@@ -89,17 +89,20 @@ function filterByKinds(fileResults, kinds) {
 }
 
 program
-  .command("scan <path>")
+  .command("scan [path]")
   .description("Scan a file or directory for debug statements")
   .option("-r, --remove", "Remove statements")
   .option("-c, --comment", "Comment out statements")
   .option("-a, --all", "Apply to every detected statement without prompting for a selection")
   .option("-d, --dry-run", "Show what would change without writing any files")
+  .option("-s, --staged", "Scan only git-staged files")
+  .option("--check", "Exit non-zero if any statements are found, and make no changes")
   .option("-m, --methods <list>", "console methods to target, comma-separated", "log")
   .option("--no-debugger", "Leave debugger statements alone")
   .action(async (scanTarget, options, command) => {
     const methodsExplicit = command.getOptionValueSource("methods") === "cli";
-    const interactive = !options.all;
+    // --check and --all never prompt, so they use the plain default methods.
+    const interactive = !options.all && !options.check;
 
     let methods;
     if (methodsExplicit) {
@@ -110,16 +113,27 @@ program
       methods = ["log"];
     }
 
+    const scanOptions = { methods: methods, debugger: options.debugger };
+
     // A non-TTY spinner leaks a stray frame into piped output.
     const spinner = process.stdout.isTTY ? ora("Scanning…").start() : null;
-    let fileResults = await scanPath(scanTarget, {
-      methods: methods,
-      debugger: options.debugger,
-    });
+    let fileResults = options.staged
+      ? await scanStaged(scanOptions)
+      : await scanPath(scanTarget ?? ".", scanOptions);
     if (spinner) spinner.stop();
 
     if (fileResults.length === 0) {
       console.log(chalk.dim("No debug statements found."));
+      return;
+    }
+
+    // --check reports and sets a failing exit code without changing anything.
+    if (options.check) {
+      const total = fileResults.reduce((sum, [findings]) => sum + findings.length, 0);
+      console.log(renderList(fileResults) + "\n");
+      const word = total === 1 ? "statement" : "statements";
+      console.log(`${chalk.bold(total)} debug ${word} found.`);
+      process.exitCode = 1;
       return;
     }
 
@@ -280,6 +294,6 @@ program.parseAsync(process.argv).catch((error) => {
     console.log(chalk.dim("Cancelled. No changes made."));
     process.exit(130);
   }
-  console.error(error);
+  console.error(chalk.red(error?.message ?? error));
   process.exit(1);
 });

@@ -1,7 +1,10 @@
 import { readdir, writeFile, stat } from "fs/promises";
+import { execFileSync } from "child_process";
 import path from "path";
 import { processFile, commentOut, removeStatements } from "./helper/index.js";
 import { loadIgnore, isIgnored } from "./ignore.js";
+
+const SUPPORTED = [".js", ".ts", ".tsx", ".jsx"];
 
 /**
  * Findings for each supported file under a path, skipping node_modules,
@@ -17,11 +20,10 @@ export async function scanPath(scanTarget, options = {}) {
   const opts = { ...options, cwd: base, ignore: matcher };
 
   const results = [];
-  const supportedExtensions = [".js", ".ts", ".tsx", ".jsx"];
   const fileStats = await stat(scanTarget);
 
   function isFileValid(filePath) {
-    return supportedExtensions.some((ext) => filePath.endsWith(ext));
+    return SUPPORTED.some((ext) => filePath.endsWith(ext));
   }
 
   async function handleFile() {
@@ -57,6 +59,47 @@ export async function scanPath(scanTarget, options = {}) {
     await handleFile();
   }
 
+  return results;
+}
+
+/**
+ * Findings for the git-staged files, read from their current content on disk.
+ * @param {object} [options] rule toggles passed to the detectors
+ * @returns {Promise<Array>} `[[findings, filePath], ...]`
+ */
+export async function scanStaged(options = {}) {
+  const base = options.cwd ?? process.cwd();
+  const matcher = options.ignore !== undefined ? options.ignore : loadIgnore(base);
+  const opts = { ...options, cwd: base, ignore: matcher };
+
+  // stderr is silenced so git's own "not a git repository" line does not leak.
+  const gitOptions = { cwd: base, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] };
+  let root;
+  let staged;
+  try {
+    root = execFileSync("git", ["rev-parse", "--show-toplevel"], gitOptions).trim();
+    staged = execFileSync(
+      "git",
+      ["diff", "--cached", "--name-only", "--diff-filter=ACMR"],
+      gitOptions,
+    );
+  } catch {
+    throw new Error("--staged requires a git repository.");
+  }
+
+  const results = [];
+  for (const line of staged.split("\n")) {
+    const relative = line.trim();
+    if (!SUPPORTED.some((ext) => relative.endsWith(ext))) continue;
+    const filePath = path.join(root, relative);
+    if (isIgnored(filePath, matcher, base)) continue;
+    try {
+      const findings = await processFile(filePath, opts);
+      if (findings) results.push([findings, filePath]);
+    } catch {
+      // Skip files that cannot be read or parsed.
+    }
+  }
   return results;
 }
 
