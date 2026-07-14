@@ -3,20 +3,18 @@ import { extend } from "acorn-jsx-walk";
 
 extend(base);
 
-/**
- * Scans an AST for all console.log calls and returns their code and positions.
- *
- * @param {object} ast - The parsed AST (from recast/acorn) of the source file.
- * @param {string} content - The original source code as a string.
- * @returns {Array<{code: string, start: number, end: number}>} Array of detected console.log calls with their code and start/end positions.
- */
+// Match only console.log calls whose direct parent is an ExpressionStatement —
+// logs that stand alone as a statement, which are the ones safe to both comment
+// and remove. This skips `a && log()` / ternaries, `{log()}` and `{void log()}`
+// in JSX, `() => log()` arrow returns, and `log()` as a call argument; a log in
+// a `.map()` block body still has an ExpressionStatement parent, so it's kept.
 export function extractLogs(ast, content) {
   const matches = [];
 
   ancestor(
-    ast.program,
+    ast,
     {
-      CallExpression(node, ancestors) {
+      CallExpression: function (node, ancestors) {
         const { callee } = node;
         if (
           callee.type !== "MemberExpression" ||
@@ -27,20 +25,15 @@ export function extractLogs(ast, content) {
           return;
 
         const parent = ancestors[ancestors.length - 2];
-
-        // Skip logs that are part of logical expressions — functional role
-        if (parent?.type === "LogicalExpression") return;
-
-        // Skip ternary branches — functional role
-        if (parent?.type === "ConditionalExpression") return;
-
-        const isJSXExpression = parent?.type === "JSXExpressionContainer";
+        if (parent?.type !== "ExpressionStatement") return;
 
         matches.push({
           code: content.slice(node.start, node.end),
           start: node.start,
           end: node.end,
-          isJSXExpression,
+          line: node.loc?.start.line,
+          stmtStart: parent.start,
+          stmtEnd: parent.end,
         });
       },
     },

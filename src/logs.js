@@ -1,20 +1,9 @@
 import { readdir, writeFile, stat } from "fs/promises";
 import path from "path";
-import { print, visit } from "recast";
-import {
-  processFile,
-  checkTargetedConsoleLog,
-  rescueLeadingComments,
-  commentOutLogs,
-} from "./helper/index.js";
-import { getParser } from "./parser.js";
+import { processFile, commentOutLogs, removeLogs } from "./helper/index.js";
 
-/***
- * Scans a directory or file for JavaScript/TypeScript/React files, parses them, and extracts all console.log statements along with their positions.
- *
- * @param {string} path - The directory or file path to scan
- * @returns {Promise<Array>} - A list of console.log statements with their positions and file paths
- */
+// Recursively collect console.log statements from a file or directory (skipping
+// dotfolders and node_modules), returning [[logDetails, filePath], ...].
 export async function scanPath(scanTarget) {
   const logs = [];
   const supportedExtensions = [".js", ".ts", ".tsx", ".jsx"];
@@ -56,38 +45,14 @@ export async function scanPath(scanTarget) {
   return logs;
 }
 
-/***
- * Modifies the source code of a file by either removing or commenting out specified console.log statements based on the provided mode.
- *
- * @param {string} filePath - The path to the file to modify
- * @param {string} content - The original source code of the file
- * @param {Array<{start: number, end: number}>} logsToModify - An array of objects containing the start and end character offsets of console.log statements to modify
- * @param {string} mode - The modification mode, either "remove" to delete the statements or "comment" to comment them out
- */
+// Comment out or remove the targeted logs and write the file. Both modes splice
+// `content` directly, so only the targeted statements change; formatting and
+// line endings are preserved.
 export async function modifyLogs(filePath, content, logsToModify, mode) {
-  function handleVisitExpressionStatement(nodePath) {
-    if (checkTargetedConsoleLog(nodePath.node, callSet)) {
-      rescueLeadingComments(nodePath);
-      nodePath.prune();
-      return false;
-    }
-    this.traverse(nodePath);
-  }
+  const result =
+    mode === "comment"
+      ? commentOutLogs(content, logsToModify)
+      : removeLogs(content, logsToModify);
 
-  if (mode === "comment") {
-    const result = commentOutLogs(content, logsToModify);
-    await writeFile(filePath, result, "utf8");
-    return;
-  }
-
-  // mode === "remove" (defaults to remove; might change in future if more modes are added)
-  const ast = getParser(content, filePath);
-  const callSet = new Set(logsToModify.map((l) => `${l.start},${l.end}`));
-
-  visit(ast, {
-    visitExpressionStatement: handleVisitExpressionStatement,
-  });
-
-  const { code } = print(ast, { reuseWhitespace: true });
-  await writeFile(filePath, code, "utf8");
+  await writeFile(filePath, result, "utf8");
 }
