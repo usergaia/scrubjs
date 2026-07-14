@@ -1,8 +1,7 @@
 {
-  "name": "logrm",
-  "version": "0.3.2",
-  "description": "",
-  "main": "index.js",
+  "name": "scrubjs",
+  "version": "0.4.0",
+  "description": "AST-precise CLI to safely remove or comment out console.log statements in JS/TS/JSX/TSX — preserves formatting and line endings.",
   "scripts": {
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "lint": "eslint ."
@@ -12,12 +11,42 @@
       "/fixtures/"
     ]
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "console",
+    "console.log",
+    "cleanup",
+    "remove",
+    "debug",
+    "logging",
+    "ast",
+    "cli",
+    "lint",
+    "javascript",
+    "typescript",
+    "jsx",
+    "tsx",
+    "react",
+    "developer-tools"
+  ],
+  "author": "Edgar Rafael Jr. <edgartrafaeljr@gmail.com>",
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "bin": {
-    "logrm": "./src/commander.js"
+    "scrubjs": "./src/commander.js"
+  },
+  "files": [
+    "src"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usergaia/log-cleanup.git"
+  },
+  "homepage": "https://github.com/usergaia/log-cleanup#readme",
+  "bugs": {
+    "url": "https://github.com/usergaia/log-cleanup/issues"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -28,13 +57,14 @@
     "react": "^19.2.4"
   },
   "dependencies": {
+    "@inquirer/prompts": "^8.5.2",
     "@sveltejs/acorn-typescript": "^1.0.9",
     "acorn": "^8.16.0",
     "acorn-jsx": "^5.3.2",
     "acorn-jsx-walk": "^2.0.0",
     "acorn-walk": "^8.3.5",
+    "chalk": "^5.6.2",
     "commander": "^14.0.3",
-    "inquirer": "^13.3.2",
-    "recast": "^0.23.11"
+    "ora": "^9.4.1"
   }
 }
