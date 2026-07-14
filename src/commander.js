@@ -16,12 +16,14 @@ program
   .version(pkg.version);
 
 program
-  .command("scan <path>")
+  .command("scan [path]")
   .description("Scan a file or directory for debug statements")
   .option("-r, --remove", "Remove statements")
   .option("-c, --comment", "Comment out statements")
   .option("-a, --all", "Apply to every detected statement without prompting for a selection")
   .option("-d, --dry-run", "Show what would change without writing any files")
+  .option("-s, --staged", "Scan only git-staged files")
+  .option("--check", "Exit non-zero if any statements are found, and make no changes")
   .option("-m, --methods <list>", "console methods to target, comma-separated", "log")
   .option("--no-debugger", "Leave debugger statements alone")
   .action(handleScan);
@@ -33,6 +35,6 @@ program.parseAsync(process.argv).catch((error) => {
     console.log(chalk.dim("Cancelled. No changes made."));
     process.exit(130);
   }
-  console.error(error);
+  console.error(chalk.red(error?.message ?? error));
   process.exit(1);
 });

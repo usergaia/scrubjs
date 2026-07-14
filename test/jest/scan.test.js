@@ -1,7 +1,8 @@
 import os from "os";
 import path from "path";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "fs/promises";
-import { modify, scanPath } from "../../src/scan.js";
+import { execFileSync } from "child_process";
+import { modify, scanPath, scanStaged } from "../../src/scan.js";
 
 async function createFixtureWorkspace(fixtureUrl) {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "logrm-regression-"));
@@ -551,6 +552,27 @@ describe("ignore mechanisms", () => {
       const results = await scanPath(tempDir, { cwd: tempDir });
       const files = results.map(([, filePath]) => path.basename(filePath));
       expect(files).toEqual(["app.js"]);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("staged scanning", () => {
+  test("scanStaged returns findings only for git-staged files", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "scrubjs-staged-"));
+    const git = (args) => execFileSync("git", args, { cwd: tempDir, stdio: "ignore" });
+    try {
+      git(["init"]);
+      git(["config", "user.email", "test@example.com"]);
+      git(["config", "user.name", "test"]);
+      await writeFile(path.join(tempDir, "staged.js"), 'console.log("staged");\n', "utf8");
+      await writeFile(path.join(tempDir, "unstaged.js"), 'console.log("unstaged");\n', "utf8");
+      git(["add", "staged.js"]);
+
+      const results = await scanStaged({ cwd: tempDir });
+      const files = results.map(([, filePath]) => path.basename(filePath));
+      expect(files).toEqual(["staged.js"]);
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
