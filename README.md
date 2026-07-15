@@ -3,18 +3,17 @@
 [![CI](https://github.com/usergaia/scrubjs/actions/workflows/ci.yml/badge.svg)](https://github.com/usergaia/scrubjs/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/%40usergaia%2Fscrubjs)](https://www.npmjs.com/package/@usergaia/scrubjs)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/usergaia/scrubjs/blob/main/LICENSE)
-<!-- Enable once published and it has downloads:
-[![npm downloads](https://img.shields.io/npm/dm/scrubjs.svg)](https://www.npmjs.com/package/scrubjs)
+<!-- Enable once the package has downloads:
+[![npm downloads](https://img.shields.io/npm/dm/%40usergaia%2Fscrubjs)](https://www.npmjs.com/package/@usergaia/scrubjs)
 -->
 
-> AST-precise CLI to safely remove or comment out leftover debug statements (`console.*`, `debugger`) in JavaScript, TypeScript, JSX, and TSX.
+> AST-precise CLI to remove or comment out leftover `console.*` and `debugger` statements in JavaScript, TypeScript, JSX, and TSX.
 
 `scrubjs` finds actual debug statements while ignoring strings and comments, then either removes them or comments them out. It edits the original source using exact AST offsets, preserving **formatting and line endings (LF or CRLF)** so diffs stay minimal. By default, it targets `console.log` and `debugger`.
 
 ## Demo
 
 ![scrubjs-demo](https://raw.githubusercontent.com/usergaia/scrubjs/main/demo/demo.gif)
-
 
 ## Install
 
@@ -25,32 +24,43 @@ npm install -g @usergaia/scrubjs
 ## Usage
 
 ```sh
-scrubjs scan [path] [options] # general
+scrubjs scan [path] [options]
 ```
 
 ```sh
-scrubjs scan --staged # for staged changes
+scrubjs scan --staged
 ```
 
 ```sh
-scrubjs scan --staged --check # for ci
+scrubjs scan --staged --check
 ```
 
-- `[path]`: a file or directory (defaults to the current directory). Directories are scanned recursively (skipping dotfolders and `node_modules`).
-- `-r, --remove`: remove the matched statements.
-- `-c, --comment`: comment them out.
-- `-a, --all`: apply to every detected statement without the interactive pick list (scriptable / non-interactive).
-- `-d, --dry-run`: print a colored diff of what would change and write nothing.
-- `-s, --staged`: scan only git-staged files.
-- `--check`: exit non-zero if any statements are found, and change nothing (for CI).
-- `-m, --methods <list>`: comma-separated `console` methods to target (default `log`, e.g. `--methods log,warn,error`).
-- With neither action flag, `scrubjs` asks whether to remove or comment.
+- `[path]`: file or directory to scan (defaults to the current directory). Directories are scanned recursively, excluding dotfolders and `node_modules`.
+- `-r, --remove`: remove matched statements.
+- `-c, --comment`: comment out matched statements.
+- `-a, --all`: apply to every detected statement without showing the interactive picker.
+- `-d, --dry-run`: preview the changes without writing files.
+- `-s, --staged`: scan only Git staged files.
+- `--check`: exit with a non-zero status if any statements are found without modifying files (useful for CI).
+- `-m, --methods <list>`: comma-separated `console` methods to target (default: `log`, e.g. `--methods log,warn,error`).
+- Without `--remove` or `--comment`, `scrubjs` asks which action to perform.
 
-By default `scrubjs` shows an interactive checkbox list of every log it found (all pre-selected) so you can **choose exactly which ones to change** before it touches anything. As you move through the list, a panel shows the highlighted log **in its surrounding code with the exact change** it would make (`space` toggles, `a` all, `i` invert, `enter` confirms, `esc` cancels). Use `--all` to skip that step. Combining an action flag with `--all` runs fully non-interactively, e.g. `scrubjs scan ./src --remove --all`.
+By default, `scrubjs` shows an interactive checkbox list of every matching statement (all pre-selected) so you can choose exactly what to change before any files are modified. As you move through the list, a preview panel highlights the selected statement in its surrounding code and shows the resulting change (`space` toggles, `a` selects all, `i` inverts the selection, `enter` confirms, `esc` cancels).
 
-Supported extensions: `.js`, `.ts`, `.jsx`, `.tsx`.
+Use `--all` to skip the interactive picker. Combining `--all` with an action flag runs completely non-interactively, for example:
 
-### Example
+```sh
+scrubjs scan ./src --remove --all
+```
+
+Supported extensions:
+
+- `.js`
+- `.ts`
+- `.jsx`
+- `.tsx`
+
+## Example
 
 ```sh
 scrubjs scan ./src --comment
@@ -66,30 +76,37 @@ scrubjs scan ./src --comment
 
 ## What it matches
 
-Only `console.log` calls that stand alone as their own statement are touched, which are exactly the ones safe to both comment and remove. `scrubjs` deliberately leaves the following alone:
+By default, `scrubjs` targets standalone `console.log` and `debugger` statements. Standalone statements are the only ones that can be safely removed or commented out without changing surrounding code.
 
-- other console methods (`console.error`, `console.warn`, `console.info`, …);
-- logs used as logic, e.g. `cond && console.log(x)` or `cond ? a : console.log(x)`;
-- logs inside JSX expression braces, e.g. `{console.log(x)}` or `{void console.log(x)}`;
-- logs that are call arguments or arrow-return bodies, e.g. `f(console.log(x))`, `() => console.log(x)`;
-- `console.log` text inside strings or comments, and non-global `obj.console.log(...)`.
+It intentionally leaves the following untouched:
+
+- other `console` methods (`console.error`, `console.warn`, `console.info`, etc.);
+- logs used as part of an expression, e.g. `cond && console.log(x)` or `cond ? a : console.log(x)`;
+- logs inside JSX expressions, e.g. `{console.log(x)}` or `{void console.log(x)}`;
+- logs used as function arguments or arrow-function return values, e.g. `f(console.log(x))` or `() => console.log(x)`;
+- text inside strings or comments;
+- non-global `console` objects such as `obj.console.log(...)`.
 
 ## Keeping intentional statements
 
-Some debug statements are intentional (real CLI output, a deliberate logger), and some files are not app code (bootstrap, seed, config scripts). Two ways to keep them:
+Sometimes a debug statement is intentional (for example, CLI output or a temporary logger), or an entire file should be skipped.
 
-**`.scrubjsignore`** at the project root skips whole files or folders. It uses gitignore-style globs:
+### `.scrubjsignore`
 
-```
+Ignore files or directories using gitignore-style patterns:
+
+```text
 scripts/
 *.config.js
 build/**
 ```
 
-**`// scrubjs-keep`** keeps a single statement. Put it at the end of the line, or on the line directly above:
+### `// scrubjs-keep`
+
+Prevent a specific statement from being matched by placing `// scrubjs-keep` on the same line or directly above it:
 
 ```js
-console.log("real output, keep this"); // scrubjs-keep
+console.log("real output"); // scrubjs-keep
 
 // scrubjs-keep
 console.log("also kept");
@@ -97,18 +114,18 @@ console.log("also kept");
 
 ## Pre-commit and CI
 
-`--check` scans and exits non-zero when it finds any statements, without changing files. Combined with `--staged`, it checks only what you are about to commit.
+`--check` scans for matching statements and exits with a non-zero status if any are found without modifying files. Combined with `--staged`, it checks only the files you're about to commit.
 
-As a pre-commit hook (for example with husky, in `.husky/pre-commit`):
+Pre-commit hook (for example, with Husky):
 
 ```sh
 npx scrubjs scan --staged --check
 ```
 
-In CI, check the whole project:
+CI:
 
 ```sh
 npx scrubjs scan --check
 ```
 
-Statements marked with `// scrubjs-keep` and files listed in `.scrubjsignore` are excluded, so the check only fails on real leftover debug statements.
+Statements marked with `// scrubjs-keep` and files ignored by `.scrubjsignore` are excluded, so the check only reports statements you haven't intentionally kept.
