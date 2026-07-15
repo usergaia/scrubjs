@@ -1,8 +1,20 @@
 # scrubjs
 
+[![CI](https://github.com/usergaia/scrubjs/actions/workflows/ci.yml/badge.svg)](https://github.com/usergaia/scrubjs/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/scrubjs.svg)](https://www.npmjs.com/package/scrubjs)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/usergaia/scrubjs/blob/main/LICENSE)
+<!-- Enable once published and it has downloads:
+[![npm downloads](https://img.shields.io/npm/dm/scrubjs.svg)](https://www.npmjs.com/package/scrubjs)
+-->
+
 > AST-precise CLI to safely remove or comment out leftover debug statements (`console.*`, `debugger`) in JavaScript, TypeScript, JSX, and TSX.
 
 `scrubjs` finds real debug statements (not ones hiding in strings or comments) and either deletes them or comments them out. It edits the original source by splicing text at exact AST offsets, so **your formatting and line endings (LF or CRLF) are preserved** and diffs stay minimal. By default it targets `console.log` and `debugger`.
+
+## Demo
+
+![scrubjs-demo](https://raw.githubusercontent.com/usergaia/scrubjs/main/demo/demo.gif)
+
 
 ## Install
 

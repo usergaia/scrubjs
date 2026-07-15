@@ -1,7 +1,7 @@
 {
   "name": "scrubjs",
   "version": "0.5.0",
-  "description": "AST-precise CLI to safely remove or comment out console.log statements in JS/TS/JSX/TSX — preserves formatting and line endings.",
+  "description": "AST-precise CLI to safely remove or comment out leftover debug statements (console.*, debugger) in JS, TS, JSX, and TSX.",
   "scripts": {
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "lint": "eslint ."
@@ -32,7 +32,7 @@
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.17.0"
   },
   "bin": {
     "scrubjs": "./src/commander.js"
@@ -42,11 +42,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/usergaia/log-cleanup.git"
+    "url": "git+https://github.com/usergaia/scrubjs.git"
   },
-  "homepage": "https://github.com/usergaia/log-cleanup#readme",
+  "homepage": "https://github.com/usergaia/scrubjs#readme",
   "bugs": {
-    "url": "https://github.com/usergaia/log-cleanup/issues"
+    "url": "https://github.com/usergaia/scrubjs/issues"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
