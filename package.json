@@ -1,5 +1,5 @@
 {
-  "name": "scrubjs",
+  "name": "@usergaia/scrubjs",
   "version": "0.5.0",
   "description": "AST-precise CLI to safely remove or comment out leftover debug statements (console.*, debugger) in JS, TS, JSX, and TSX.",
   "scripts": {
@@ -35,7 +35,7 @@
     "node": ">=20.17.0"
   },
   "bin": {
-    "scrubjs": "./src/commander.js"
+    "scrubjs": "src/commander.js"
   },
   "files": [
     "src"

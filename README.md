@@ -1,7 +1,7 @@
 # scrubjs
 
 [![CI](https://github.com/usergaia/scrubjs/actions/workflows/ci.yml/badge.svg)](https://github.com/usergaia/scrubjs/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/scrubjs.svg)](https://www.npmjs.com/package/scrubjs)
+[![npm version](https://img.shields.io/npm/v/scrubjs.svg)](https://www.npmjs.com/package/@usergaia/scrubjs)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/usergaia/scrubjs/blob/main/LICENSE)
 <!-- Enable once published and it has downloads:
 [![npm downloads](https://img.shields.io/npm/dm/scrubjs.svg)](https://www.npmjs.com/package/scrubjs)
@@ -9,7 +9,7 @@
 
 > AST-precise CLI to safely remove or comment out leftover debug statements (`console.*`, `debugger`) in JavaScript, TypeScript, JSX, and TSX.
 
-`scrubjs` finds real debug statements (not ones hiding in strings or comments) and either deletes them or comments them out. It edits the original source by splicing text at exact AST offsets, so **your formatting and line endings (LF or CRLF) are preserved** and diffs stay minimal. By default it targets `console.log` and `debugger`.
+`scrubjs` finds actual debug statements while ignoring strings and comments, then either removes them or comments them out. It edits the original source using exact AST offsets, preserving **formatting and line endings (LF or CRLF)** so diffs stay minimal. By default, it targets `console.log` and `debugger`.
 
 ## Demo
 
@@ -19,7 +19,7 @@
 ## Install
 
 ```sh
-npm install -g scrubjs
+npm install -g @usergaia/scrubjs
 ```
 
 ## Usage
@@ -29,11 +29,11 @@ scrubjs scan [path] [options] # general
 ```
 
 ```sh
-scrubjs --staged # for staged changes
+scrubjs scan --staged # for staged changes
 ```
 
 ```sh
-scrubjs --staged --check # for ci
+scrubjs scan --staged --check # for ci
 ```
 
 - `[path]`: a file or directory (defaults to the current directory). Directories are scanned recursively (skipping dotfolders and `node_modules`).
