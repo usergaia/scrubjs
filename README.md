@@ -1,7 +1,7 @@
 # scrubjs
 
 [![CI](https://github.com/usergaia/scrubjs/actions/workflows/ci.yml/badge.svg)](https://github.com/usergaia/scrubjs/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/scrubjs.svg)](https://www.npmjs.com/package/@usergaia/scrubjs)
+[![npm version](https://img.shields.io/npm/v/%40usergaia%2Fscrubjs)](https://www.npmjs.com/package/@usergaia/scrubjs)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/usergaia/scrubjs/blob/main/LICENSE)
 <!-- Enable once published and it has downloads:
 [![npm downloads](https://img.shields.io/npm/dm/scrubjs.svg)](https://www.npmjs.com/package/scrubjs)
