@@ -1,6 +1,6 @@
 {
   "name": "scrubjs",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "AST-precise CLI to safely remove or comment out console.log statements in JS/TS/JSX/TSX — preserves formatting and line endings.",
   "scripts": {
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",

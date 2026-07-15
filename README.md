@@ -26,7 +26,6 @@ scrubjs scan [path] [options]
 - `-s, --staged`: scan only git-staged files.
 - `--check`: exit non-zero if any statements are found, and change nothing (for CI).
 - `-m, --methods <list>`: comma-separated `console` methods to target (default `log`, e.g. `--methods log,warn,error`).
-- `--no-debugger`: leave `debugger` statements alone (they're targeted by default).
 - With neither action flag, `scrubjs` asks whether to remove or comment.
 
 By default `scrubjs` shows an interactive checkbox list of every log it found (all pre-selected) so you can **choose exactly which ones to change** before it touches anything. As you move through the list, a panel shows the highlighted log **in its surrounding code with the exact change** it would make (`space` toggles, `a` all, `i` invert, `enter` confirms, `esc` cancels). Use `--all` to skip that step. Combining an action flag with `--all` runs fully non-interactively, e.g. `scrubjs scan ./src --remove --all`.

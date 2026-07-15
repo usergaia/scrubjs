@@ -25,7 +25,6 @@ program
   .option("-s, --staged", "Scan only git-staged files")
   .option("--check", "Exit non-zero if any statements are found, and make no changes")
   .option("-m, --methods <list>", "console methods to target, comma-separated", "log")
-  .option("--no-debugger", "Leave debugger statements alone")
   .action(handleScan);
 
 // Top-level await would make Node warn when a prompt is aborted.
