@@ -20,14 +20,20 @@
 
 ```sh
 npm install -g scrubjs
-# or run without installing:
-npx scrubjs scan <path>
 ```
 
 ## Usage
 
 ```sh
-scrubjs scan [path] [options]
+scrubjs scan [path] [options] # general
+```
+
+```sh
+scrubjs --staged # for staged changes
+```
+
+```sh
+scrubjs --staged --check # for ci
 ```
 
 - `[path]`: a file or directory (defaults to the current directory). Directories are scanned recursively (skipping dotfolders and `node_modules`).
