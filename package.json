@@ -1,6 +1,6 @@
 {
   "name": "@usergaia/scrubjs",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "AST-precise CLI to safely remove or comment out leftover debug statements (console.*, debugger) in JS, TS, JSX, and TSX.",
   "scripts": {
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
