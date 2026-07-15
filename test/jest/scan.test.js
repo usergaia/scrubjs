@@ -1,7 +1,8 @@
 import os from "os";
 import path from "path";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "fs/promises";
-import { execFileSync } from "child_process";
+import { execFileSync, spawnSync } from "child_process";
+import { fileURLToPath } from "url";
 import { modify, scanPath, scanStaged } from "../../src/scan.js";
 
 async function createFixtureWorkspace(fixtureUrl) {
@@ -573,6 +574,36 @@ describe("staged scanning", () => {
       const results = await scanStaged({ cwd: tempDir });
       const files = results.map(([, filePath]) => path.basename(filePath));
       expect(files).toEqual(["staged.js"]);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("cli --check", () => {
+  const cli = fileURLToPath(new URL("../../src/commander.js", import.meta.url));
+
+  function runCheck(dir) {
+    return spawnSync(process.execPath, [cli, "scan", "--check", dir], {
+      encoding: "utf8",
+    });
+  }
+
+  test("exits non-zero when statements are found", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "scrubjs-check-"));
+    try {
+      await writeFile(path.join(tempDir, "a.js"), 'console.log("x");\n', "utf8");
+      expect(runCheck(tempDir).status).toBe(1);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test("exits zero when clean", async () => {
+    const tempDir = await mkdtemp(path.join(os.tmpdir(), "scrubjs-check-"));
+    try {
+      await writeFile(path.join(tempDir, "a.js"), "export const x = 1;\n", "utf8");
+      expect(runCheck(tempDir).status).toBe(0);
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }

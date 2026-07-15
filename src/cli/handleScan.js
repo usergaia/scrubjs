@@ -1,7 +1,7 @@
 import { readFile } from "fs/promises";
 import ora from "ora";
 import chalk from "chalk";
-import { scanPath, modify } from "../scan.js";
+import { scanPath, scanStaged, modify } from "../scan.js";
 import { renderList, renderFileDiff, ok } from "../ui.js";
 import { chooseKinds, choosePicks, chooseTask } from "./prompts/index.js";
 import { getKindCount, filterByKind, flattenFileResult, groupByFile } from "./filters/index.js";
@@ -34,19 +34,30 @@ function resolveMethods(options, methodsExplicit, interactive) {
  */
 export async function handleScan(scanTarget, options, command) {
   const methodsExplicit = command.getOptionValueSource("methods") === "cli";
-  const interactive = !options.all;
+  // --check and --all never prompt, so they use the plain default methods.
+  const interactive = !options.all && !options.check;
   const methods = resolveMethods(options, methodsExplicit, interactive);
+  const scanOptions = { methods: methods, debugger: options.debugger };
 
   // A non-TTY spinner leaks a stray frame into piped output.
   const spinner = process.stdout.isTTY ? ora("Scanning…").start() : null;
-  let fileResults = await scanPath(scanTarget, {
-    methods: methods,
-    debugger: options.debugger,
-  });
+  let fileResults = options.staged
+    ? await scanStaged(scanOptions)
+    : await scanPath(scanTarget ?? ".", scanOptions);
   if (spinner) spinner.stop();
 
   if (fileResults.length === 0) {
     console.log(chalk.dim("No debug statements found."));
+    return;
+  }
+
+  // --check reports and sets a failing exit code without changing anything.
+  if (options.check) {
+    const total = fileResults.reduce((sum, [findings]) => sum + findings.length, 0);
+    console.log(renderList(fileResults) + "\n");
+    const word = total === 1 ? "statement" : "statements";
+    console.log(`${chalk.bold(total)} debug ${word} found.`);
+    process.exitCode = 1;
     return;
   }
 
